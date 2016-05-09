@@ -79,7 +79,7 @@ char* event(char* eventname, char* eventdate, char* eventtime){
     strip(eventname, '\n');
     strip(eventtime, '\n');
     strip(eventdate, '\n');
-    sprintf(msg, "You are invited to %s at %s on %s.\nWill you attend? (y/n)\n",eventname,eventtime,eventdate);
+    sprintf(msg, "You are invited to %s at %s on %s.\n",eventname,eventtime,eventdate);
     return msg;
 }
 
@@ -127,7 +127,7 @@ int main(int argc, char **argv){
 
 
   /*runs forever used to send messages*/
-
+  int sd = socket(AF_INET, SOCK_DGRAM, 0);
   char* realtimebuf;
   for(;;){
     printf("Event name:\n");
@@ -139,7 +139,8 @@ int main(int argc, char **argv){
     event(namebuf, datebuf, timebuf);
     if(sendto(sockfd, event(namebuf, datebuf, timebuf), datalen, 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0) perror("Sending message error");
     else printf("Sent invitation");
-    for(;;){
+    for(;;){\
+      int b;
       if((b = recvfrom(sd,databuf,datalen,0,NULL,0)) < 0){
         printf("error\n");
         perror("Reading datagram message error");
