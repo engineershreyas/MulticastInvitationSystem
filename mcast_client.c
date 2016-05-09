@@ -12,7 +12,26 @@ int sd;
 int datalen;
 char databuf[5000];
 
+void strip(char *str, char strip)
+{
+    char *p, *q;
+    for (q = p = str; *p; p++)
+        if (*p != strip)
+            *q++ = *p;
+    *q = '\0';
+}
 
+char* reply(char attending, char* email, char* curtime){
+    char *msg;
+    strip(email, '\n');
+    strip(curtime, '\n');
+    if(attending == 'y'){
+      sprintf(msg, "%s\t\t%s will be attending!\n",curtime,email);
+      return msg;
+    }
+    sprintf(msg, "%s\t\t%s will not be attending.\n",curtime,email);
+    return msg;
+}
 
 int main(int argc, char **argv){
 
@@ -67,9 +86,14 @@ int main(int argc, char **argv){
   }
 
   datalen = 5000;
-
-
+  char attending;
+  char email[5000];
+  char replytime[5000];
+  time_t rawtime;
+  struct tm * curtime;
+  int timelen = 150;
   /*runs forever, used to receive messages */
+  label: loopstart;
   for(;;){
     int b;
     if((b = recvfrom(sd,databuf,datalen,0,NULL,0)) < 0){
@@ -79,8 +103,18 @@ int main(int argc, char **argv){
       exit(1);
     }
     else{
-      printf("Received Message: %s\n",databuf);
-    }
+      printf("%s", databuf);
+      while(attending != 'y' || attending != 'n'){
+        printf("Will you attend? (y/n):\n");
+        fgets(attending,1,stdin);
+        if(attending != 'y' || attending != 'n') printf("Unrecognized input.\n");
+      }
+      printf("What is your email address?\n");
+      fgets(email,datalen,stdin);
+      time (&rawtime);
+      curtime = localtime (&rawtime);
+      if(sendto(sockfd, reply(attending, email, asctime(curtime)), datalen, 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0) perror("Sending message error");
+      else printf("Sent RSVP");
   }
 
 

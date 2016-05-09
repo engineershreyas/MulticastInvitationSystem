@@ -21,6 +21,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 
 int mcast_join(int sockfd, const struct sockaddr *sa, socklen_t salen, const char *ifname, u_int ifindex, int loopback){
@@ -62,9 +63,24 @@ doioctl:
       }
     }
   }
+}
 
+void strip(char *str, char strip)
+{
+    char *p, *q;
+    for (q = p = str; *p; p++)
+        if (*p != strip)
+            *q++ = *p;
+    *q = '\0';
+}
 
-
+char* event(char* eventname, char* eventdate, char* eventtime){
+    char *msg;
+    strip(eventname, '\n');
+    strip(eventtime, '\n');
+    strip(eventdate, '\n');
+    sprintf(msg, "You are invited to %s at %s on %s.\nWill you attend? (y/n)\n",eventname,eventtime,eventdate);
+    return msg;
 }
 
 
@@ -105,33 +121,36 @@ int main(int argc, char **argv){
 
   int datalen = 5000;
   char databuf[datalen];
+  char namebuf[datalen];
+  char datebuf[datalen];
+  char timebuf[datalen];
 
 
   /*runs forever used to send messages*/
+
+  char* realtimebuf;
   for(;;){
-
-
-    printf("Type in a message to send\n");
-    if(fgets(databuf,sizeof(databuf),stdin)) {
-      if(sendto(sockfd, databuf, datalen, 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0){
-        perror("Sending message error");
+    printf("Event name:\n");
+    fgets(namebuf,sizeof(namebuf),stdin);
+    printf("Event date:\n");
+    fgets(datebuf,sizeof(datebuf),stdin);
+    printf("Event time:\n");
+    fgets(timebuf,sizeof(timebuf),stdin);
+    event(namebuf, datebuf, timebuf);
+    if(sendto(sockfd, event(namebuf, datebuf, timebuf), datalen, 0, (struct sockaddr*)&groupSock, sizeof(groupSock)) < 0) perror("Sending message error");
+    else printf("Sent invitation");
+    for(;;){
+      if((b = recvfrom(sd,databuf,datalen,0,NULL,0)) < 0){
+        printf("error\n");
+        perror("Reading datagram message error");
+        close(sd);
+        exit(1);
       }
-      else{
-        printf("Sending message = %s\n",databuf);
-      }
+      else printf("%s", databuf);
     }
-
-
-
+    
   }
 
 
   return 0;
-
-
-
-
-
-
-
 }
